@@ -5,6 +5,12 @@ from robot.api import logger
 
 ROBOT_LISTENER_API_VERSION = 2
 
+PKG_ALIASES = {
+    # Install polybar from my nixpkgs overlay with support for extra modules enabled.
+    # This means it will need to be built from source.
+    'polybar': 'polybar-extra-support'
+}
+
 # Lower number means higher priority.
 package_priorities = {
     # These 2 packages have a conflict for the SpaceMono-Italic font.
@@ -19,7 +25,7 @@ def start_keyword(name, attrs):
         logger.debug('Registered Emit call in ' + __name__)
 
         for package in attrs['args'][1:]:
-            run_cmd(['nix-env', '--install', '--attr', add_prefix(package)])
+            run_cmd(['nix-env', '--install', '--attr', resolve(package)])
             set_priorities(package)
 
 def set_priorities(package):
@@ -27,7 +33,8 @@ def set_priorities(package):
         priority = package_priorities[package]
         run_cmd(['nix-env', '--set-flag', 'priority', str(priority), package])
 
-def add_prefix(package):
+def resolve(package):
+    # Determine the prefix to use.
     os_path = Path(os.path.sep, 'etc', 'os-release')
     prefix = 'nixpkgs'
 
@@ -36,7 +43,8 @@ def add_prefix(package):
             if 'NixOS' in os_file.read():
                 prefix = 'nixos'
 
-    return prefix + '.' + package
+    # Install the package by a different name if specified by PKG_ALIASES.
+    return prefix + '.' + PKG_ALIASES.get(package, package)
 
 def run_cmd(cmd):
     logger.info(__name__ + ' running: ' + str(cmd))
