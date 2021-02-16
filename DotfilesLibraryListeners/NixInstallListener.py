@@ -25,15 +25,18 @@ def start_keyword(name, attrs):
         logger.debug('Registered Emit call in ' + __name__)
 
         for package in attrs['args'][1:]:
-            run_cmd(['nix-env', '--install', '--attr', resolve(package)])
-            set_priorities(package)
+            nix_install(package)
 
-def set_priorities(package):
+def nix_install(package):
+    _run_cmd(['nix-env', '--install', '--attr', _resolve(package)])
+    _set_priorities(package)
+
+def _set_priorities(package):
     if package in package_priorities:
         priority = package_priorities[package]
-        run_cmd(['nix-env', '--set-flag', 'priority', str(priority), package])
+        _run_cmd(['nix-env', '--set-flag', 'priority', str(priority), package])
 
-def resolve(package):
+def _resolve(package):
     # Determine the prefix to use.
     os_path = Path(os.path.sep, 'etc', 'os-release')
     prefix = 'nixpkgs'
@@ -46,7 +49,7 @@ def resolve(package):
     # Install the package by a different name if specified by PKG_ALIASES.
     return prefix + '.' + PKG_ALIASES.get(package, package)
 
-def run_cmd(cmd):
+def _run_cmd(cmd):
     logger.info(__name__ + ' running: ' + str(cmd))
     completed = subprocess.run(cmd)
     if completed.returncode != 0:
